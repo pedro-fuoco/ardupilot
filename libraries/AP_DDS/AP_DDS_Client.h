@@ -63,6 +63,7 @@ private:
     geometry_msgs_msg_TwistStamped local_velocity_topic;
     geographic_msgs_msg_GeoPoseStamped geo_pose_topic;
     rosgraph_msgs_msg_Clock clock_topic;
+    tf2_msgs_msg_TFMessage tf_topic;
 
     HAL_Semaphore csem;
 

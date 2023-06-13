@@ -9,6 +9,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_VisualOdom/AP_VisualOdom.h>
 
 #include "AP_DDS_Client.h"
 
@@ -412,7 +413,7 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
     */
 
     switch (object_id.id) {
-    case topics[to_underlying(TopicIndex::JOY_SUB)].dr_id.id:
+    case topics[to_underlying(TopicIndex::JOY_SUB)].dr_id.id: {
         sensor_msgs_msg_Joy topic;
         const bool success = sensor_msgs_msg_Joy_deserialize_topic(ub, &topic);
 
@@ -430,7 +431,24 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
         }
         break;
     }
+    case topics[to_underlying(TopicIndex::TRANSFORMS_SUB)].dr_id.id: {
+        tf2_msgs_msg_TFMessage topic;
+        const bool success = tf2_msgs_msg_TFMessage_deserialize_topic(ub, &topic);
 
+        auto *extOdom = AP::visualodom();
+
+        if (success == false || !extOdom->enabled()) { // Checks if VISO_TYPE == 0
+            break;
+        }
+
+        for (long unsigned int i = 0; i < sizeof(topic.transforms)/sizeof(geometry_msgs_msg_TransformStamped); i++) {
+            if (!strcmp(topic.transforms[i].header.frame_id, "odom")) {
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received external odometry message: x = %lf, y = %lf", topic.transforms[i].transform.translation.x, topic.transforms[i].transform.translation.y);
+            }
+        }
+        break;
+    }
+    }
 }
 
 /*
