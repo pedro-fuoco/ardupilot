@@ -2736,24 +2736,60 @@ INCLUDE common.ld
             done.add(type)
         return peripherals
 
+    def get_processed_defaults_file(self, defaults_filepath, depth=0):
+        '''reads defaults_filepath, expanding any @include lines to include
+        the contents of the so-references file - recursively.'''
+        if depth > 10:
+            raise Exception("include loop")
+        ret = ""
+        with open(defaults_filepath, 'r') as defaults_fh:
+            while True:
+                line = defaults_fh.readline()
+                if line == "":
+                    break
+                m = re.match("^@include\s*([^\s]+)", line)
+                if m is None:
+                    ret += line
+                    continue
+                # we've found an include; do that...
+                include_filepath = os.path.join(os.path.dirname(defaults_filepath), m.group(1))
+                try:
+#                    ret += "# Begin included file (%s)" % include_filepath
+                    ret += self.get_processed_defaults_file(include_filepath, depth=depth+1)
+#                    ret += "# End included file (%s)" % include_filepath
+                except FileNotFoundError:
+                    raise Exception("%s includes %s but that filepath was not found" %
+                                    (defaults_filepath, include_filepath))
+        return ret
 
-    def write_env_py(self, filename):
-        '''write out env.py for environment variables to control the build process'''
 
+    def write_processed_defaults_file(self, filepath):
         # see if board has a defaults.parm file or a --default-parameters file was specified
         defaults_filename = os.path.join(os.path.dirname(args.hwdef[0]), 'defaults.parm')
         defaults_path = os.path.join(os.path.dirname(args.hwdef[0]), args.params)
 
-        if not args.bootloader:
-            if os.path.exists(defaults_path):
-                self.env_vars['DEFAULT_PARAMETERS'] = os.path.abspath(self.default_params_filepath)
-                print("Default parameters path from command line: %s" % self.default_params_filepath)
-            elif os.path.exists(defaults_filename):
-                self.env_vars['DEFAULT_PARAMETERS'] = os.path.abspath(defaults_filename)
-                print("Default parameters path from hwdef: %s" % defaults_filename)
-            else:
-                print("No default parameter file found")
+        defaults_abspath = None
+        if os.path.exists(defaults_path):
+            defaults_abspath = os.path.abspath(self.default_params_filepath)
+            print("Default parameters path from command line: %s" % self.default_params_filepath)
+        elif os.path.exists(defaults_filename):
+            defaults_abspath = os.path.abspath(defaults_filename)
+            print("Default parameters path from hwdef: %s" % defaults_filename)
 
+        if defaults_abspath is None:
+            print("No default parameter file found")
+            return
+
+        content = self.get_processed_defaults_file(defaults_abspath)
+
+        with open(filepath, "w") as processed_defaults_fh:
+            processed_defaults_fh.write(content)
+
+        self.env_vars['DEFAULT_PARAMETERS'] = filepath
+
+
+    def write_env_py(self, filename):
+        '''write out env.py for environment variables to control the build process'''
         # CHIBIOS_BUILD_FLAGS is passed to the ChibiOS makefile
         self.env_vars['CHIBIOS_BUILD_FLAGS'] = ' '.join(self.build_flags)
         pickle.dump(self.env_vars, open(filename, "wb"))
@@ -3079,6 +3115,10 @@ INCLUDE common.ld
 #define AP_ROBOTISSERVO_ENABLED 0
 #endif
 
+#ifndef AP_SBUSOUTPUT_ENABLED
+#define AP_SBUSOUTPUT_ENABLED 0
+#endif
+
 // by default an AP_Periph defines as many servo output channels as
 // there are PWM outputs:
 #ifndef NUM_SERVO_CHANNELS
@@ -3122,6 +3162,14 @@ INCLUDE common.ld
 #endif
 
 #define HAL_CRSF_TELEM_ENABLED 0
+
+#ifndef AP_SERVORELAYEVENTS_ENABLED
+#define AP_SERVORELAYEVENTS_ENABLED 0
+#endif
+
+#ifndef AP_RELAY_ENABLED
+#define AP_RELAY_ENABLED 0
+#endif
 
 /*
  * GPS Backends - we selectively turn backends on.
@@ -3264,6 +3312,32 @@ INCLUDE common.ld
 #define AP_SCRIPTING_ENABLED 0
 #endif
 
+#define AP_BATTERY_ENABLED defined(HAL_PERIPH_ENABLE_BATTERY)
+#define AP_AHRS_ENABLED defined(HAL_PERIPH_ENABLE_AHRS)
+#define AP_COMPASS_ENABLED defined(HAL_PERIPH_ENABLE_MAG)
+#define AP_BARO_ENABLED defined(HAL_PERIPH_ENABLE_BARO)
+#define AP_GPS_ENABLED defined(HAL_PERIPH_ENABLE_GPS)
+
+#ifndef AP_BOOTLOADER_ALWAYS_ERASE
+#define AP_BOOTLOADER_ALWAYS_ERASE 1
+#endif
+
+#ifndef GPS_MOVING_BASELINE
+#define GPS_MOVING_BASELINE 0
+#endif
+
+#ifndef AP_UART_MONITOR_ENABLED
+#define AP_UART_MONITOR_ENABLED AP_GPS_ENABLED && (GPS_MOVING_BASELINE || BOARD_FLASH_SIZE>=256)
+#endif
+
+#ifndef HAL_BOARD_LOG_DIRECTORY
+#define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
+#endif
+
+#ifndef HAL_BOARD_TERRAIN_DIRECTORY
+#define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
+#endif
+
 // end AP_Periph defaults
 ''')
 
@@ -3391,6 +3465,17 @@ INCLUDE common.ld
 #define HAL_DSHOT_ALARM_ENABLED (HAL_PWM_COUNT>0)
 #endif
 
+#ifndef HAL_BOARD_LOG_DIRECTORY
+#define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
+#endif
+
+#ifndef HAL_BOARD_TERRAIN_DIRECTORY
+#define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
+#endif
+
+// enable terrain only if there's an SD card available:
+#define AP_TERRAIN_AVAILABLE HAL_OS_FATFS_IO
+
 // end firmware defaults
 ''')
 
@@ -3426,6 +3511,9 @@ INCLUDE common.ld
         # copy the shared linker script into the build directory; it must
         # exist in the same directory as the ldscript.ld file we generate.
         self.copy_common_linkerscript(self.outdir)
+
+        if not args.bootloader:
+            self.write_processed_defaults_file(os.path.join(self.outdir, "processed_defaults.parm"))
 
         self.write_env_py(os.path.join(self.outdir, "env.py"))
 

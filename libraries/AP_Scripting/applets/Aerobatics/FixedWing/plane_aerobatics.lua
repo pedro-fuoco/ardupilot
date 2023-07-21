@@ -2308,9 +2308,9 @@ local function mavlink_receiver()
       local msg,_,timestamp_ms = mavlink.receive_chan()
       if msg then
          local parsed_msg = mavlink_msgs.decode(msg, msg_map)
-         if parsed_msg.msgid == NAMED_VALUE_FLOAT_msgid then
+         if (parsed_msg ~= nil) and (parsed_msg.msgid == NAMED_VALUE_FLOAT_msgid) then
             -- convert remote timestamp to local timestamp with jitter correction
-            local time_boot_ms = jitter_correction.correct_offboard_timestamp_msec(parsed_msg.time_boot_ms, timestamp_ms)
+            local time_boot_ms = jitter_correction.correct_offboard_timestamp_msec(parsed_msg.time_boot_ms, timestamp_ms:toint())
             local value = parsed_msg.value
             local name = bytes_to_string(parsed_msg.name)
             return time_boot_ms, name, value, parsed_msg.sysid
@@ -3110,7 +3110,7 @@ function check_auto_mission()
    end
 end
 
-local last_trick_action_state = 0
+local last_trick_action_state = rc:get_aux_cached(TRIK_ACT_FN:get())
 local trick_sel_chan = nil
 local last_trick_selection = nil
 
@@ -3213,8 +3213,8 @@ function check_trick()
 end
 
 function update()
-   if ahrs:get_velocity_NED() == nil  or ahrs:get_EAS2TAS() == nil then
-      -- don't start till we have a valid ahrs estimates
+   if ahrs:get_velocity_NED() == nil  or ahrs:get_EAS2TAS() == nil or ahrs:get_relative_position_NED_origin() == nil then
+      -- don't start till we have valid ahrs estimates
       return update, 1000.0/LOOP_RATE
    end
    if vehicle:get_mode() == MODE_AUTO then

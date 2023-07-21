@@ -39,11 +39,23 @@ bool AP_Camera_Mount::set_zoom(ZoomType zoom_type, float zoom_value)
 
 // set focus specified as rate, percentage or auto
 // focus in = -1, focus hold = 0, focus out = 1
-bool AP_Camera_Mount::set_focus(FocusType focus_type, float focus_value)
+SetFocusResult AP_Camera_Mount::set_focus(FocusType focus_type, float focus_value)
 {
     AP_Mount* mount = AP::mount();
     if (mount != nullptr) {
         return mount->set_focus(0, focus_type, focus_value);
+    }
+    return SetFocusResult::FAILED;
+}
+
+// set tracking to none, point or rectangle (see TrackingType enum)
+// if POINT only p1 is used, if RECTANGLE then p1 is top-left, p2 is bottom-right
+// p1,p2 are in range 0 to 1.  0 is left or top, 1 is right or bottom
+bool AP_Camera_Mount::set_tracking(TrackingType tracking_type, const Vector2f& p1, const Vector2f& p2)
+{
+    AP_Mount* mount = AP::mount();
+    if (mount != nullptr) {
+        return mount->set_tracking(0, tracking_type, p1, p2);
     }
     return false;
 }
