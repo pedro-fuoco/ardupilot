@@ -22,8 +22,13 @@ void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& ms
 
 bool AP_DDS_External_Odom::is_odometry_frame(const geometry_msgs_msg_TransformStamped& msg)
 {
-    // TODO
-    return true;
+    char odom_parent[] = "map";
+    char odom_child[] = "base_link";
+    // Assume the frame ID's are null terminated.
+    return (strlen(msg.header.frame_id) == strlen(odom_parent)) &&
+            (strlen(msg.child_frame_id) == strlen(odom_child)) &&
+            (strncmp(msg.header.frame_id, odom_parent, strlen(odom_parent)) == 0) && 
+           (strncmp(msg.child_frame_id, odom_child, strlen(odom_child)) == 0);
 }
 
 
