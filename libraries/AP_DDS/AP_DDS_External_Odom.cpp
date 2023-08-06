@@ -15,19 +15,15 @@ void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& ms
             const auto ros_transform_stamped = msg.transforms[i];
             if (is_odometry_frame(ros_transform_stamped)) {
                 // TODO should rotation be normalized?
-                [[maybe_unused]] const uint64_t remote_time_us {0}; // TODO
-                [[maybe_unused]] const uint32_t time_ms {0}; // TODO
+                const uint64_t remote_time_us {0}; // TODO
+                const uint32_t time_ms {0}; // TODO
                 TransformF ap_transform {};
-                [[maybe_unused]] const float posErr {0.0}; // TODO
-                [[maybe_unused]] const float angErr {0.0}; // TODO
-                [[maybe_unused]] const uint8_t reset_counter {0}; // TODO
                 convert_transform(ros_transform_stamped.transform, ap_transform);
-                // Uncommenting this causes a linker error.
-                //   [1226/1226] Linking build/sitl/bin/arduplane
-                //   /usr/bin/ld: lib/libArduPlane_libs.a(AP_DDS_External_Odom.cpp.0.o): in function `AP_DDS_External_Odom::handle_external_odom(tf2_msgs_msg_TFMessage const&)':
-                //   AP_DDS_External_Odom.cpp:(.text._ZN20AP_DDS_External_Odom20handle_external_odomERK22tf2_msgs_msg_TFMessage+0x175): undefined reference to `AP_VisualOdom::handle_vision_position_estimate(unsigned long, unsigned int, TransformF&, float, float, unsigned char)'
-                //   collect2: error: ld returned 1 exit status
-                // visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_transform, posErr, angErr, reset_counter);
+                const float posErr {0.0}; // TODO
+                const float angErr {0.0}; // TODO
+                const uint8_t reset_counter {0}; // TODO
+
+                visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_transform, posErr, angErr, reset_counter);
             }
         }
     }
