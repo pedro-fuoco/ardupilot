@@ -14,15 +14,17 @@ void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& ms
         for (size_t i = 0; i < msg.transforms_size; i++) {
             const auto ros_transform_stamped = msg.transforms[i];
             if (is_odometry_frame(ros_transform_stamped)) {
-                // TODO should rotation be normalized?
                 const uint64_t remote_time_us {0}; // TODO
                 const uint32_t time_ms {0}; // TODO
                 Vector3f ap_position {};
                 Quaternion ap_rotation {};
-                
+
                 convert_transform(ros_transform_stamped.transform, ap_position, ap_rotation);
-                const float posErr {0.0}; // TODO
-                const float angErr {0.0}; // TODO
+                ap_rotation.normalize();
+
+                // No error is available in TF, trust the data as-is
+                const float posErr {0.0};
+                const float angErr {0.0};
                 const uint8_t reset_counter {0}; // TODO
 
                 visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_position.x, ap_position.y, ap_position.z, ap_rotation, posErr, angErr, reset_counter);
@@ -38,7 +40,7 @@ bool AP_DDS_External_Odom::is_odometry_frame(const geometry_msgs_msg_TransformSt
     // Assume the frame ID's are null terminated.
     return (strlen(msg.header.frame_id) == strlen(odom_parent)) &&
            (strlen(msg.child_frame_id) == strlen(odom_child)) &&
-           (strncmp(msg.header.frame_id, odom_parent, strlen(odom_parent)) == 0) && 
+           (strncmp(msg.header.frame_id, odom_parent, strlen(odom_parent)) == 0) &&
            (strncmp(msg.child_frame_id, odom_child, strlen(odom_child)) == 0);
 }
 
