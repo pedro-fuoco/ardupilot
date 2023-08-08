@@ -4,7 +4,8 @@
 
 #include "geometry_msgs/msg/TransformStamped.h"
 #include "tf2_msgs/msg/TFMessage.h"
-#include <AP_Math/transform.h>
+#include "AP_Math/vector3.h"
+#include "AP_Math/quaternion.h"
 
 class AP_DDS_External_Odom
 {
@@ -18,8 +19,8 @@ public:
     // for odometry.
     static bool is_odometry_frame(const geometry_msgs_msg_TransformStamped& msg); 
 
-    // Helper to convert from ROS transform to AP transform
-    static void convert_transform(const geometry_msgs_msg_Transform& ros_transform, TransformF& ap_transform);
+    // Helper to convert from ROS transform to AP datatypes
+    static void convert_transform(const geometry_msgs_msg_Transform& ros_transform, Vector3f& translation, Quaternion& rotation);
 
 };
 #endif // AP_DDS_ENABLED

@@ -17,13 +17,15 @@ void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& ms
                 // TODO should rotation be normalized?
                 const uint64_t remote_time_us {0}; // TODO
                 const uint32_t time_ms {0}; // TODO
-                TransformF ap_transform {};
-                convert_transform(ros_transform_stamped.transform, ap_transform);
+                Vector3f ap_position {};
+                Quaternion ap_rotation {};
+                
+                convert_transform(ros_transform_stamped.transform, ap_position, ap_rotation);
                 const float posErr {0.0}; // TODO
                 const float angErr {0.0}; // TODO
                 const uint8_t reset_counter {0}; // TODO
 
-                visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_transform, posErr, angErr, reset_counter);
+                visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_position.x, ap_position.y, ap_position.z, ap_rotation, posErr, angErr, reset_counter);
             }
         }
     }
@@ -35,24 +37,24 @@ bool AP_DDS_External_Odom::is_odometry_frame(const geometry_msgs_msg_TransformSt
     char odom_child[] = "base_link";
     // Assume the frame ID's are null terminated.
     return (strlen(msg.header.frame_id) == strlen(odom_parent)) &&
-            (strlen(msg.child_frame_id) == strlen(odom_child)) &&
-            (strncmp(msg.header.frame_id, odom_parent, strlen(odom_parent)) == 0) && 
+           (strlen(msg.child_frame_id) == strlen(odom_child)) &&
+           (strncmp(msg.header.frame_id, odom_parent, strlen(odom_parent)) == 0) && 
            (strncmp(msg.child_frame_id, odom_child, strlen(odom_child)) == 0);
 }
 
-void AP_DDS_External_Odom::convert_transform(const geometry_msgs_msg_Transform& ros_transform, TransformF& ap_transform)
+void AP_DDS_External_Odom::convert_transform(const geometry_msgs_msg_Transform& ros_transform, Vector3f& translation, Quaternion& rotation)
 {
-    ap_transform.translation.x = ros_transform.translation.x;
-    ap_transform.translation.y = ros_transform.translation.y;
-    ap_transform.translation.z = ros_transform.translation.z;
+    translation.x = static_cast<float>(ros_transform.translation.x);
+    translation.y = static_cast<float>(ros_transform.translation.y);
+    translation.z = static_cast<float>(ros_transform.translation.z);
 
     // In AP, q1 is the quaternion's scalar component.
     // In ROS, w is the quaternion's scalar component.
     // https://docs.ros.org/en/humble/Tutorials/Intermediate/Tf2/Quaternion-Fundamentals.html#components-of-a-quaternion
-    ap_transform.rotation.q1 = ros_transform.rotation.w;
-    ap_transform.rotation.q2 = ros_transform.rotation.x;
-    ap_transform.rotation.q3 = ros_transform.rotation.y;
-    ap_transform.rotation.q4 = ros_transform.rotation.z;
+    rotation.q1 = ros_transform.rotation.w;
+    rotation.q2 = ros_transform.rotation.x;
+    rotation.q3 = ros_transform.rotation.y;
+    rotation.q4 = ros_transform.rotation.z;
 }
 
 #endif // AP_DDS_ENABLED

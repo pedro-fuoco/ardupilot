@@ -25,7 +25,6 @@
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #endif
 #include <AP_Math/AP_Math.h>
-#include <AP_Math/transform.h>
 
 class AP_VisualOdom_Backend;
 
@@ -93,10 +92,6 @@ public:
     // distances in meters, roll, pitch and yaw are in radians
     void handle_vision_position_estimate(uint64_t remote_time_us, uint32_t time_ms, float x, float y, float z, float roll, float pitch, float yaw, float posErr, float angErr, uint8_t reset_counter);
     void handle_vision_position_estimate(uint64_t remote_time_us, uint32_t time_ms, float x, float y, float z, const Quaternion &attitude, float posErr, float angErr, uint8_t reset_counter);
-    // This override currently narrows to 32-bit precision regardless of EKF using double math.
-    // AP_VisualOdom does not yet support double math.
-    // When it does support double math, the function signature can remain the same.
-    void handle_vision_position_estimate(uint64_t remote_time_us, uint32_t time_ms, TransformF& pose, float posErr, float angErr, uint8_t reset_counter);
     // general purpose methods to consume velocity estimate data and send to EKF
     // velocity in NED meters per second
     void handle_vision_speed_estimate(uint64_t remote_time_us, uint32_t time_ms, const Vector3f &vel, uint8_t reset_counter);

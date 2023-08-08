@@ -209,18 +209,6 @@ void AP_VisualOdom::handle_vision_position_estimate(uint64_t remote_time_us, uin
     }
 }
 
-void AP_VisualOdom::handle_vision_position_estimate(uint64_t remote_time_us, uint32_t time_ms, TransformF& pose, float posErr, float angErr, uint8_t reset_counter)
-{
-    Quaternion rotF(
-        static_cast<float>(pose.rotation.q1),
-        static_cast<float>(pose.rotation.q2),
-        static_cast<float>(pose.rotation.q3),
-        static_cast<float>(pose.rotation.q4)
-    );
-
-    handle_vision_position_estimate(remote_time_us, time_ms, static_cast<float>(pose.translation.x), static_cast<float>(pose.translation.y), static_cast<float>(pose.translation.z), rotF, posErr, angErr, reset_counter);
-}
-
 void AP_VisualOdom::handle_vision_speed_estimate(uint64_t remote_time_us, uint32_t time_ms, const Vector3f &vel, uint8_t reset_counter)
 {
     // exit immediately if not enabled
