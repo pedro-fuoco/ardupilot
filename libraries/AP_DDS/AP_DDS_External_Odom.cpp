@@ -1,14 +1,12 @@
 
 
-#if AP_DDS_ENABLED
+#if AP_DDS_ENABLED && defined(HAL_VISUALODOM_ENABLED)
 
 #include "AP_DDS_External_Odom.h"
 #include <AP_VisualOdom/AP_VisualOdom.h>
 
 void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& msg)
 {
-    //! @todo guard with #if HAL_VISUALODOM_ENABLED and specific visual odom type
-
     AP_VisualOdom *visual_odom = AP::visualodom();
     if (visual_odom != nullptr) {
         for (size_t i = 0; i < msg.transforms_size; i++) {
@@ -59,4 +57,4 @@ void AP_DDS_External_Odom::convert_transform(const geometry_msgs_msg_Transform& 
     rotation.q4 = ros_transform.rotation.z;
 }
 
-#endif // AP_DDS_ENABLED
+#endif // AP_DDS_ENABLED && defined(HAL_VISUALODOM_ENABLED)
