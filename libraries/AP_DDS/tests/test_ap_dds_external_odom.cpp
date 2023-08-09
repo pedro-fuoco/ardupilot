@@ -1,8 +1,8 @@
 #include <AP_gtest.h>
 
 #include <AP_DDS/AP_DDS_External_Odom.h>
+#include "geometry_msgs/msg/TransformStamped.h"
 #include <AP_HAL/AP_HAL.h>
-
 
 const AP_HAL::HAL &hal = AP_HAL::get_HAL();
 

@@ -1,32 +1,43 @@
 
 
-#if AP_DDS_ENABLED && defined(HAL_VISUALODOM_ENABLED)
-
 #include "AP_DDS_External_Odom.h"
-#include <AP_VisualOdom/AP_VisualOdom.h>
+#include "AP_DDS_Type_Conversions.h"
+
+#if AP_DDS_VISUALODOM_ENABLED
+
+#include "AP_VisualOdom/AP_VisualOdom.h"
+
 
 void AP_DDS_External_Odom::handle_external_odom(const tf2_msgs_msg_TFMessage& msg)
 {
-    AP_VisualOdom *visual_odom = AP::visualodom();
-    if (visual_odom != nullptr) {
-        for (size_t i = 0; i < msg.transforms_size; i++) {
-            const auto ros_transform_stamped = msg.transforms[i];
-            if (is_odometry_frame(ros_transform_stamped)) {
-                const uint64_t remote_time_us {0}; // TODO
-                const uint32_t time_ms {0}; // TODO
-                Vector3f ap_position {};
-                Quaternion ap_rotation {};
+    auto *visual_odom = AP::visualodom();
+    if (visual_odom == nullptr) {
+        return;
+    }
 
-                convert_transform(ros_transform_stamped.transform, ap_position, ap_rotation);
-                ap_rotation.normalize();
+    for (size_t i = 0; i < msg.transforms_size; i++) {
+        const auto ros_transform_stamped = msg.transforms[i];
+        if (is_odometry_frame(ros_transform_stamped)) {
+            const uint64_t remote_time_us {AP_DDS_Type_Conversions::time_u64_micros(ros_transform_stamped.header.stamp)};
+            const uint32_t time_ms {0}; // TODO
+            Vector3f ap_position {};
+            Quaternion ap_rotation {};
 
-                // No error is available in TF, trust the data as-is
-                const float posErr {0.0};
-                const float angErr {0.0};
-                const uint8_t reset_counter {0}; // TODO
+            convert_transform(ros_transform_stamped.transform, ap_position, ap_rotation);
+            // Although ROS convention states quaternions in ROS messages should be normalized, it's not guaranteed.
+            // Before propogating a potentially inaccurate quaternion to the rest of AP, normalize it here.
+            // TODO what if the quaternion is NaN?
+            ap_rotation.normalize();
 
-                visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_position.x, ap_position.y, ap_position.z, ap_rotation, posErr, angErr, reset_counter);
-            }
+            // No error is available in TF, trust the data as-is
+            const float posErr {0.0};
+            const float angErr {0.0};
+            // The odom to base_link transform used is locally consistent per ROS REP-105.
+            // https://www.ros.org/reps/rep-0105.html#id16
+            // Thus, there will not be any resets.
+            const uint8_t reset_counter {0};
+
+            visual_odom->handle_vision_position_estimate(remote_time_us, time_ms, ap_position.x, ap_position.y, ap_position.z, ap_rotation, posErr, angErr, reset_counter);
         }
     }
 }
@@ -57,4 +68,4 @@ void AP_DDS_External_Odom::convert_transform(const geometry_msgs_msg_Transform& 
     rotation.q4 = ros_transform.rotation.z;
 }
 
-#endif // AP_DDS_ENABLED && defined(HAL_VISUALODOM_ENABLED)
+#endif // AP_DDS_VISUALODOM_ENABLED

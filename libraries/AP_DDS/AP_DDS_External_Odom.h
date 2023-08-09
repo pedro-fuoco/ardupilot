@@ -3,7 +3,8 @@
 
 #pragma once
 
-#if AP_DDS_ENABLED && defined(HAL_VISUALODOM_ENABLED)
+#include "AP_DDS_config.h"
+#if AP_DDS_VISUALODOM_ENABLED
 
 #include "geometry_msgs/msg/TransformStamped.h"
 #include "tf2_msgs/msg/TFMessage.h"
@@ -26,4 +27,5 @@ public:
     static void convert_transform(const geometry_msgs_msg_Transform& ros_transform, Vector3f& translation, Quaternion& rotation);
 
 };
-#endif // AP_DDS_ENABLED && HAL_VISUALODOM_ENABLED
+
+#endif // AP_DDS_VISUALODOM_ENABLED

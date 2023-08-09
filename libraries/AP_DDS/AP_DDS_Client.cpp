@@ -446,9 +446,9 @@ void AP_DDS_Client::on_topic (uxrSession* uxr_session, uxrObjectId object_id, ui
         uint32_t* count_ptr = (uint32_t*) args;
         (*count_ptr)++;
         if (rx_dynamic_transforms_topic.transforms_size > 0) {
-            #if defined(HAL_VISUALODOM_ENABLED)
+            #if AP_DDS_VISUALODOM_ENABLED
             AP_DDS_External_Odom::handle_external_odom(rx_dynamic_transforms_topic);
-            #endif // defined(HAL_VISUALODOM_ENABLED)
+            #endif // AP_DDS_VISUALODOM_ENABLED
 
         } else {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received tf2_msgs/TFMessage: Insufficient size ");
